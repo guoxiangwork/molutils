@@ -62,41 +62,6 @@ class MolFile:
         )
 
 
-"""
-newbonds
-[
-[a1 a2 t1]
-[a1 a2 t1]
-]
-"""
-
-
-def combine_molfile(m1: MolFile, m2: MolFile, newbonds: List[list]):
-    elements = np.concatenate([m1.elements, m2.elements])
-    coordinates = np.concatenate([m1.coordinates, m2.coordinates], axis=0)
-    bond_pair = np.concatenate([m1.bond_pair, m2.bond_pair + len(m1.elements)], axis=0)
-    bond_type = np.concatenate([m1.bond_type, m2.bond_type])
-
-    l1 = []
-    l2 = []
-    for item in newbonds:
-        l1.append([item[0], item[1] + len(m1.elements)])
-        l2.append(item[2])
-
-    l1 = np.array(l1)
-    l2 = np.array(l2)
-
-    bond_pair = np.concatenate([bond_pair, l1], axis=0)
-    bond_type = np.concatenate([bond_type, l2], axis=0)
-
-    m1.bond_type = bond_type
-    m1.elements = elements
-    m1.coordinates = coordinates
-    m1.bond_pair = bond_pair
-
-    return m1
-
-
 def write_mol_file(m: MolFile):
     lines = []
     lines.append("made by guoxiang python script")
@@ -132,21 +97,44 @@ def rotation(m: MolFile, pole, point: np.ndarray, angle):
 
     theta = angle / 180 * np.pi
 
-    r = Rotation.from_rotvec(theta*pole_norm)
+    r = Rotation.from_rotvec(theta * pole_norm)
     c = r.apply(coordinates)
 
-    return c+point
+    return c + point
 
 
+
+
+def combine_molfile(m1, m2, newbonds: List[list]):
+    m1 = MolFile(m1)
+    m2 = MolFile(m2)
+    elements = np.concatenate([m1.elements, m2.elements])
+    coordinates = np.concatenate([m1.coordinates, m2.coordinates], axis=0)
+    bond_pair = np.concatenate([m1.bond_pair, m2.bond_pair + len(m1.elements)], axis=0)
+    bond_type = np.concatenate([m1.bond_type, m2.bond_type])
+
+    l1 = []
+    l2 = []
+    for item in newbonds:
+        l1.append([item[0], item[1] + len(m1.elements)])
+        l2.append(item[2])
+
+    l1 = np.array(l1)
+    l2 = np.array(l2)
+
+    bond_pair = np.concatenate([bond_pair, l1], axis=0)
+    bond_type = np.concatenate([bond_type, l2], axis=0)
+
+    m1.bond_type = bond_type
+    m1.elements = elements
+    m1.coordinates = coordinates
+    m1.bond_pair = bond_pair
+
+    return write_mol_file(m1)
 
 
 if __name__ == "__main__":
-    m1 = MolFile("1.mol")
-    m2 = MolFile("1.mol")
 
-    m3 = combine_molfile(m1, m2, [[1, 1, 1]])
-    a = write_mol_file(m3)
-    print(a)
+    m3 = combine_molfile('1.mol', '1.mol', [[1, 1, 1]])
+    print(m3)
 
-    a=rotation(m3,[1,1,1],[0,0,1],30)
-    print(a)
