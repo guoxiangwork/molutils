@@ -2,8 +2,7 @@ from pathlib import Path
 from typing import List
 import numpy as np
 from scipy.spatial.transform import Rotation
-from .read import *
-from .write import * 
+from .molio import *
 
 
 
@@ -28,10 +27,13 @@ def transition(m: MolFile, vec: np.ndarray):
 
     return m
 
+def transition_molblock(mol_block:str):
+    e,c,p,t=read_mol_block(mol_block)
+
 
 def rotation(m: MolFile, pole, point: np.ndarray, angle):
     coordinates = m.coordinates - point
-    pole_norm = pole / np.sqrt(np.linalg.norm(pole, 2))
+    pole_norm = pole / np.linalg.norm(pole)
 
     theta = angle / 180 * np.pi
 
