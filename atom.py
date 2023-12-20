@@ -29,12 +29,17 @@ class Bond:
         self.index = index
         self.atoms = atoms
         self.order = order
+        self.vec = atoms[1].coordinate - atoms[0].coordinate
 
 
 class Molecule:
     def __init__(self, atoms: List[Atom], bonds: List[Bond]) -> None:
         self.atoms = atoms
         self.bonds = bonds
+        for idx, atom in enumerate(self.atoms):
+            atom.index = idx
+        for idx, bond in enumerate(self.bonds):
+            bond.index = idx
 
     def remove_atoms(self, atomsindices: List[int]):
         self.atoms = [self.atoms[i] for i in range(len(self.atoms)) if i not in atomsindices]
@@ -43,15 +48,31 @@ class Molecule:
             for i in range(len(self.bonds))
             if (self.bonds[i].atoms[0].index not in atomsindices) and (self.bonds[i].atoms[1].index not in atomsindices)
         ]
+        for idx, atom in enumerate(self.atoms):
+            atom.index = idx
+        for idx, bond in enumerate(self.bonds):
+            bond.index = idx
 
     def remove_bonds(self, bondsindices: List[int]):
         self.bonds = [self.bonds[i] for i in range(len(self.bonds)) if i not in bondsindices]
+        for idx, atom in enumerate(self.atoms):
+            atom.index = idx
+        for idx, bond in enumerate(self.bonds):
+            bond.index = idx
 
     def add_atoms(self, atoms: List[Atom]):
         self.add_atoms += atoms
+        for idx, atom in enumerate(self.atoms):
+            atom.index = idx
+        for idx, bond in enumerate(self.bonds):
+            bond.index = idx
 
     def add_bonds(self, bonds: List[Bond]):
         self.bonds += bonds
+        for idx, atom in enumerate(self.atoms):
+            atom.index = idx
+        for idx, bond in enumerate(self.bonds):
+            bond.index = idx
 
     def translate(self, vector: np.ndarray):
         self.atoms = [atom.translate(vector) for atom in self.atoms]
@@ -59,6 +80,26 @@ class Molecule:
 
     def rotate(self, center: np.ndarray, axis: np.ndarray, angle: float):
         self.atoms = [atom.rotate(center, axis, angle) for atom in self.atoms]
+        return self
+
+    def reflect(self, point, normal_vec):
+        pass
+
+    def align_bond(self, bond: Bond, direction: np.ndarray):
+        angle = np.arccos(np.dot(bond.vec, direction) / (np.linalg.norm(bond.vec) * np.linalg.norm(direction)))
+        if angle == np.pi:
+            print('===1====')
+            #self.reflect(bond.atoms[1].coordinate, bond.vec)
+            return self
+        elif angle == 0:
+            print('===2====')
+            return self
+        else:
+            print('===3====')
+            axis = np.cross(bond.vec, direction)
+            c = deepcopy(bond.atoms[1].coordinate)
+            self.rotate(c, axis, angle)
+            return self
 
     @classmethod
     def from_molfile(cls, molfile):
@@ -117,6 +158,61 @@ class Molecule:
             )
 
         return "\n".join(lines)
+
+    def substitute(self, a_index, func_group, bond_order):
+
+        new_a = deepcopy(self)
+        new_b = deepcopy(func_group)
+
+        N_atom = None
+        H_idx = None
+        a_bond = None
+        a_vec = None
+        for bond in new_a.bonds:
+            if bond.atoms[0].symbol == "N" and bond.atoms[1].symbol == "H":
+                N_atom = bond.atoms[0]
+                H_idx = bond.atoms[1].index
+                a_bond = bond
+                a_vec = bond.vec
+            elif bond.atoms[1].symbol == "N" and bond.atoms[0].symbol == "H":
+                N_atom = bond.atoms[1]
+                H_idx = bond.atoms[0].index
+                a_bond = bond
+                a_vec = -bond.vec
+        C_atom = None
+        B_idx = None
+        b_bond = None
+        b_vec = None
+        for bond in new_b.bonds:
+            if bond.atoms[0].symbol == "Br":
+                C_atom = bond.atoms[1]
+                B_idx = bond.atoms[0].index
+                b_bond = bond
+                b_vec = -bond.vec
+            elif bond.atoms[1].symbol == "Br":
+                C_atom = bond.atoms[0]
+                B_idx = bond.atoms[1].index
+                b_bond = bond
+                b_vec = bond.vec
+
+        b_vec = -b_vec
+        angle = np.arccos(np.dot(b_vec,a_vec)/np.linalg.norm(b_vec)*np.linalg.norm(a_vec))
+        axis = np.cross(b_vec,a_vec)
+        center = deepcopy(C_atom.coordinate)
+        new_b.rotate(center,axis,angle)
+        v1 = new_a.atoms[a_index].coordinate + 15 * a_vec
+        v2 = new_b.atoms[B_idx].coordinate
+        new_b.translate(v1 - v2)
+
+        new_atoms = new_a.atoms + new_b.atoms
+        new_bonds = new_a.bonds + new_b.bonds
+        mol = Molecule(new_atoms, new_bonds)
+        bb = Bond(index=None, atoms=[N_atom, C_atom], order=1)
+        mol.add_bonds([bb])
+
+        mol.remove_atoms([H_idx, B_idx + len(new_a.atoms)])
+
+        return mol
 
 
 if __name__ == "__main__":
