@@ -22,7 +22,7 @@ from utils import smi2mol
 
 
 
-smiles_list = open('remove_duplication-562.smi','r').read().split()
+smiles_list = open('re-wh.smi','r').read().split()
 for idx,smi in enumerate(smiles_list):
     mb = smi2mol(smi)
     grop = Molecule.from_molblock(mb)
@@ -31,4 +31,4 @@ for idx,smi in enumerate(smiles_list):
     base = Molecule.from_molblock(basismol_block)
     mol_join = base.substitute(60, grop, 1)
 
-    print(mol_join, file=open(f"rdg-duijie/join-{idx}.mol", "w"))
+    print(mol_join, file=open(f"re-wh/rdg/join-{idx}.mol", "w"))
